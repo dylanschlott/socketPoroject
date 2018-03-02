@@ -9,21 +9,27 @@
 #define ECHOMAX 255             /* Longest string to echo */
 #define BACKLOG 128
 #define TRUE 1
-#define FALSE 1
+#define FALSE 0
 #define MAXCLIENTS 10
+#define BUFF 64
+
 struct purchase_request{
 	int myid;
 	int destinationid;
 	int coins; /*Number of coins myId is requesting from destinationId.*/
 }purchase_request;
-
-struct clientmsg{
-	int userId;
-	int coins;
-	struct purchase_request req;
-	int vectorTime[MAXCLIENTS];
-}client;
-
+struct MinerInfo {
+	char userName [64];
+	char ipAddress [64];
+	char portNumber [64];
+	int initialCoins;
+};
+struct request{
+	char requestType[BUFF];
+	char requestArgs[BUFF];
+	struct MinerInfo myMiners[MAXCLIENTS];
+	int VectorClock[MAXCLIENTS];	
+};
 void
 DieWithError(const char *errorMessage) /* External error handling function */
 {
@@ -32,25 +38,41 @@ DieWithError(const char *errorMessage) /* External error handling function */
 }
 
 void
-clientMsg(int sockfd,char * sendline,int strlen)
+clientMsgOut(int sockfd,char * sendline,int strlen)
 {
+	//msg format"REQUEST,ARG1,ARG2,ARGN,"
+	char * msg;
 	switch(sendline[0]){
 	case '1':
+	write(sockfd, "querytest\n", 9);
 	break;
-	case '2':
-	break;
-}
-}
 
+	case '2':
+	write(sockfd, "register\n", 8);
+	break;
+
+	default:
+	write(sockfd, sendline, strlen);
+	}
+}
+void 
+clientMsgIn(char * inputString)
+{
+	fputs(inputString,stdout);
+}
 void
 str_cli(FILE *fp, int sockfd)
 {
 	ssize_t n;
         char    sendline[ECHOMAX], recvline[ECHOMAX];
-
+	struct MinerInfo myMiner;
+	strncpy(myMiner.userName,"testname",BUFF);
+	strncpy(myMiner.ipAddress,"1.2.3.4",BUFF);
+	strncpy(myMiner.portNumber,"54321",BUFF);
         while (fgets(sendline, ECHOMAX, fp) != NULL) {
 
-		clientMsg(sockfd,sendline,strlen(sendline));
+		//clientMsgOut(sockfd,sendline,strlen(sendline));
+		write(sockfd,&myMiner,sizeof(myMiner));
                 //write(sockfd, sendline, strlen(sendline));
 		
 	
@@ -58,14 +80,15 @@ str_cli(FILE *fp, int sockfd)
                         DieWithError("str_cli: server terminated prematurely");
 
 		recvline[ n ] = '\0';
-                fputs(recvline, stdout);
+		//clientMsgIn(recvline);
+                //fputs(recvline, stdout);
         }
 }
 int
 proof_of_work(long bigNumber)
 {
 	int isPrime = TRUE;
-	for(int n = 2; n < bigNumber; n++)
+	for(int n = 2; n < bigNumber-1; n++)
 	{
 		if(bigNumber%n==0)
 		{
@@ -74,6 +97,8 @@ proof_of_work(long bigNumber)
 	}
 	return isPrime;
 }
+
+
 
 int
 main(int argc, char **argv)

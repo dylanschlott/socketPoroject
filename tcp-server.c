@@ -9,14 +9,15 @@
 
 #define	ECHOMAX	255		/* Longest string to echo */
 #define BACKLOG	128
+#define BUFF 64
 
 int minerQty = 0;
 
 struct Miner {
 
-	char * userName;
-	char * ipAddress;
-	char * portNumber;
+	char userName [64];
+	char ipAddress [64];
+	char portNumber [64];
 	int initialCoins;
 };
 
@@ -32,13 +33,16 @@ EchoString(int sockfd)
 {
     ssize_t n;
     char    line[ECHOMAX];
+    struct Miner myMiner;
 
     for ( ; ; ) {
-	    if ( (n = read(sockfd, line, ECHOMAX)) == 0 )
+	    if ( (n = read(sockfd, &myMiner, ECHOMAX)) == 0 )
    	    	return; /* connection closed by other end */
 
-        write(sockfd, line, n );
-	printf("%s\n",line);
+//        write(sockfd, line, n );
+	printf("%s %s %s \n",myMiner.userName,myMiner.ipAddress,myMiner.portNumber);	
+	//printf("%s\n",line);
+	//struct test
     }
 }
 
