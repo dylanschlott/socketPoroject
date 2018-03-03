@@ -13,12 +13,7 @@
 #define MAXCLIENTS 10
 #define BUFF 64
 
-struct purchase_request{
-	int myid;
-	int destinationid;
-	int coins; /*Number of coins myId is requesting from destinationId.*/
-}purchase_request;
-struct MinerInfo {
+struct Miner {
 	char userName [64];
 	char ipAddress [64];
 	char portNumber [64];
@@ -27,7 +22,7 @@ struct MinerInfo {
 struct request{
 	char requestType[BUFF];
 	char requestArgs[BUFF];
-	struct MinerInfo myMiners[MAXCLIENTS];
+	struct miner myMiners[MAXCLIENTS];
 	int VectorClock[MAXCLIENTS];	
 };
 void
@@ -65,7 +60,7 @@ str_cli(FILE *fp, int sockfd)
 {
 	ssize_t n;
         char    sendline[ECHOMAX], recvline[ECHOMAX];
-	struct MinerInfo myMiner;
+	struct miner myMiner;
 	strncpy(myMiner.userName,"testname",BUFF);
 	strncpy(myMiner.ipAddress,"1.2.3.4",BUFF);
 	strncpy(myMiner.portNumber,"54321",BUFF);
