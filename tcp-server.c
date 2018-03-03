@@ -20,6 +20,15 @@ struct Miner {
 	char portNumber [64];
 	int coins;
 };
+struct request{
+	char requestType[BUFF];
+	char requestArgs[BUFF];
+	int userId;
+	int status;
+	struct miner minerInfo;
+	struct miner myMiners[MAXCLIENTS];
+	int VectorClock[MAXCLIENTS];	
+};
 
 void 
 DieWithError(const char *errorMessage) /* External error handling function */
@@ -92,7 +101,7 @@ void save(char * fName) {
 	strcpy(fileName, fName);
 	strcat(fileName, ".txt");
 
-	printf(fileName);
+	//printf(fileName);
 
 	fp = fopen(fileName, "w");
 

@@ -17,14 +17,18 @@ struct Miner {
 	char userName [64];
 	char ipAddress [64];
 	char portNumber [64];
-	int initialCoins;
+	int coins;
 };
 struct request{
 	char requestType[BUFF];
 	char requestArgs[BUFF];
+	struct miner minerInfo;
 	struct miner myMiners[MAXCLIENTS];
 	int VectorClock[MAXCLIENTS];	
 };
+
+struct miner myMiner;//This client's miner
+
 void
 DieWithError(const char *errorMessage) /* External error handling function */
 {
@@ -60,7 +64,6 @@ str_cli(FILE *fp, int sockfd)
 {
 	ssize_t n;
         char    sendline[ECHOMAX], recvline[ECHOMAX];
-	struct miner myMiner;
 	strncpy(myMiner.userName,"testname",BUFF);
 	strncpy(myMiner.ipAddress,"1.2.3.4",BUFF);
 	strncpy(myMiner.portNumber,"54321",BUFF);
@@ -100,7 +103,9 @@ main(int argc, char **argv)
 {
 	int sockfd;
 	struct sockaddr_in servaddr;
-
+	char name[BUFF];
+	scanf("%s",name);
+	
 	if (argc != 3)
 		DieWithError( "usage: tcp-client <Server-IPaddress> <Server-Port>" );
 	
