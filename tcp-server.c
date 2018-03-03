@@ -18,7 +18,7 @@ struct Miner {
 	char userName [64];
 	char ipAddress [64];
 	char portNumber [64];
-	int initialCoins;
+	int coins;
 };
 
 void 
