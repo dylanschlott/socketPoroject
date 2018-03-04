@@ -96,8 +96,6 @@ DieWithError(const char *errorMessage) /* External error handling function */
 	exit(1);
 }
 
-//NOTE YOU HAVE TO READ IN '2' CONDITIONAL
-
 void
 EchoString(int sockfd)
 {
@@ -131,9 +129,13 @@ EchoString(int sockfd)
 		}
 		else if(inRequest.requestType == 2) { //client wants list of miners
 
-			//printList();
-			strcpy(clientRequest.requestArgs, "test RequestArgs");
-			write(sockfd, &clientRequest, sizeof(clientRequest));	
+			strcpy(clientRequest.requestArgs, inRequest.requestArgs);
+
+			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
+				
+				DieWithError("didn't send anything to client\n");
+			}
+				
 		}
 		else if(inRequest.requestType == 3) { //client is trying to search miner
 
@@ -148,7 +150,6 @@ EchoString(int sockfd)
 
 int registerMiner() {
 
-	printf("Trying to register");
 	int assignedID = -500;
 	int index = 0;
 
@@ -200,9 +201,9 @@ int registerMiner() {
 	strcpy(minerDatabase[index].portNumber, clientRequest.minerInfo.portNumber);
 	minerDatabase[index].userID = clientRequest.minerInfo.userID;
 	minerDatabase[index].coins = clientRequest.minerInfo.coins;
-	clientRequest.status = 1;
+	clientRequest.status = 100;
 
-	return 1;
+	return 123456789;
 }
 
 //NOTE: it says to return the minerQty. Should we add int minerQty to request struct to send back?
@@ -323,10 +324,5 @@ main(int argc, char **argv)
 	connfd = accept( sock, (struct sockaddr *) &echoClntAddr, &cliAddrLen );
 
 	EchoString(connfd);
-	
-	printf("Server exited: ");
-
 	close(connfd);
-
-	printf("Server exited: ");
 }

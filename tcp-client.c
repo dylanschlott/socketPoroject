@@ -140,8 +140,12 @@ main(int argc, char **argv)
 
 	//sleep(1);
 	ssize_t n;
- 	if ( (n = read(sockfd, &serverRequest, ECHOMAX)) == 0)
+	ssize_t n2;
+
+ 	if ( (n = read(sockfd, &serverRequest, sizeof(serverRequest))) == 0)
                         DieWithError("str_cli: server terminated prematurely");
+
+	printf("\n%ld\n", n);
 
 	printf("Return code:%d \nuserID %d\nrequestArgs %s\n", serverRequest.status,serverRequest.userId, serverRequest.requestArgs);
 
@@ -149,8 +153,9 @@ main(int argc, char **argv)
 
 	while(1) {
 
+		printf("\nPlease enter command: ");
+		fflush(stdin);
 		fgets(command, BUFF, stdin);
-		printf("command was %s\n", command);
 
 		if(strcmp(command, "1\n") == 0) {
 
@@ -171,23 +176,37 @@ main(int argc, char **argv)
 		}
 		else if (strcmp(command, "2\n") == 0) {
 
-			printf("Requested to print list\n");
-
 			myRequest.requestType = 2;
-			write(sockfd, &myRequest, sizeof(myRequest));
+			char argument[BUFF];
+			fflush(stdin);
 
-			if ((n = read(sockfd, &serverRequest, ECHOMAX)) == 0);
-				DieWithError("server terminated prematurely");
+			printf("Type request argument to receive back ");
+			fgets(argument, BUFF, stdin);
+			strcpy(myRequest.requestArgs, argument);
 
-			printf("request args was %s", serverRequest.requestArgs);
+			//Write to server AND check if sent anything
+			if ((n2 = write(sockfd, &myRequest, sizeof(myRequest))) == 0) {
+			
+				printf("Didn't send any bytes to server");			
+			}
+
+			//Read from server AND check if received anything
+			if ((n = read(sockfd, &serverRequest, ECHOMAX)) == 0) {
+				
+				DieWithError("server terminated prematurely!");
+			}
+
+			sleep(1);
+			printf("request args was %s\n", serverRequest.requestArgs);
 		}
-		else if (strcmp(command, "break") == 0) {
+		else if (strcmp(command, "break\n") == 0) {
 
-			printf("\nleaving loop");
+			printf("leaving loop\n");
+			break;
 		}
 		else {
 
-			printf("\nInvalid input");
+			printf("Invalid input\n");
 		}
 	}
 
