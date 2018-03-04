@@ -107,8 +107,6 @@ main(int argc, char **argv)
 {
 	int sockfd;
 	struct sockaddr_in servaddr;
-	char name[BUFF];
-	scanf("%s",name);
 	
 	if (argc != 5)
 		DieWithError( "usage: tcp-client <Server-IPaddress> <Server-Port> <Coins> <Name>" );
@@ -120,8 +118,8 @@ main(int argc, char **argv)
 	servaddr.sin_port = htons(atoi(argv[2]));
 	inet_pton(AF_INET, argv[1], &servaddr.sin_addr);
 
-	strncpy(myMiner.userName,argv[5],sizeof(argv[5]));
-	myMiner.coins = atoi(argv[4]);
+	strncpy(myMiner.userName,argv[4],sizeof(argv[4]));
+	myMiner.coins = atoi(argv[3]);
 	strncpy(myMiner.ipAddress,argv[1],sizeof(argv[1]));
 	myMiner.userId = -1;
 	strncpy(myMiner.portNumber,argv[2],sizeof(argv[2]));
