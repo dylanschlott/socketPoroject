@@ -38,6 +38,7 @@ struct request{
 struct Miner myMiner;//This client's miner
 struct request myRequest;//this is a general purpose struct for handling client->server requests
 struct request serverRequest;//this is a gernal purpose struct for handling server->client requests
+char response[BUFF];
 
 void
 DieWithError(const char *errorMessage) /* External error handling function */
@@ -109,6 +110,8 @@ int
 main(int argc, char **argv)
 {
 	int sockfd;
+	char command[BUFF];
+	char inputName[BUFF];
 	struct sockaddr_in servaddr;
 	
 	if (argc != 5)
@@ -131,15 +134,62 @@ main(int argc, char **argv)
 	myRequest.userId = 999;
 	myRequest.status = -1;
 	myRequest.minerInfo = myMiner;
+
 	//register client to server	
 	write(sockfd,&myRequest,sizeof(myRequest));
+
+	//sleep(1);
 	ssize_t n;
  	if ( (n = read(sockfd, &serverRequest, ECHOMAX)) == 0)
                         DieWithError("str_cli: server terminated prematurely");
-	printf("Return code:%d \n userID %d",serverRequest.status,serverRequest.userId);
-	
 
-	str_cli(stdin, sockfd);		/* do it all */
+	printf("Return code:%d \nuserID %d\nrequestArgs %s\n", serverRequest.status,serverRequest.userId, serverRequest.requestArgs);
+
+	//str_cli(stdin, sockfd);		/* do it all */
+
+	while(1) {
+
+		fgets(command, BUFF, stdin);
+		printf("command was %s\n", command);
+
+		if(strcmp(command, "1\n") == 0) {
+
+			printf("\nEnter user name: ");
+			fgets(inputName, BUFF, stdin);
+
+			strcpy(myMiner.userName, inputName);
+			strcpy(myMiner.ipAddress, "1.11");
+			strcpy(myMiner.portNumber, "1");
+			myMiner.userId = -1;
+			myMiner.coins = 777;
+
+			myRequest.requestType = 1;
+			myRequest.userId = 999;
+			myRequest.status = -1;
+			myRequest.minerInfo = myMiner;
+			write(sockfd, &myRequest, sizeof(myRequest));
+		}
+		else if (strcmp(command, "2\n") == 0) {
+
+			printf("Requested to print list\n");
+
+			myRequest.requestType = 2;
+			write(sockfd, &myRequest, sizeof(myRequest));
+
+			if ((n = read(sockfd, &serverRequest, ECHOMAX)) == 0);
+				DieWithError("server terminated prematurely");
+
+			printf("request args was %s", serverRequest.requestArgs);
+		}
+		else if (strcmp(command, "break") == 0) {
+
+			printf("\nleaving loop");
+		}
+		else {
+
+			printf("\nInvalid input");
+		}
+	}
 
 	exit(0);
 }
