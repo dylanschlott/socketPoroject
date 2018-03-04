@@ -12,22 +12,29 @@
 #define FALSE 0
 #define MAXCLIENTS 10
 #define BUFF 64
+#define SUCCESS 1
+#define FAILURE 0
 
 struct Miner {
 	char userName [64];
 	char ipAddress [64];
 	char portNumber [64];
+	int userId;
 	int coins;
 };
 struct request{
-	char requestType[BUFF];
+	int requestType;
 	char requestArgs[BUFF];
-	struct miner minerInfo;
-	struct miner myMiners[MAXCLIENTS];
+	int userId;
+	int status;
+	struct Miner minerInfo;
+	struct Miner myMiners[MAXCLIENTS];
 	int VectorClock[MAXCLIENTS];	
 };
 
-struct miner myMiner;//This client's miner
+struct Miner myMiner;//This client's miner
+struct request myRequest;//this is a general purpose struct for handling client->server requests
+struct request serverRequest;//this is a gernal purpose struct for handling server->client requests
 
 void
 DieWithError(const char *errorMessage) /* External error handling function */
@@ -64,9 +71,6 @@ str_cli(FILE *fp, int sockfd)
 {
 	ssize_t n;
         char    sendline[ECHOMAX], recvline[ECHOMAX];
-	strncpy(myMiner.userName,"testname",BUFF);
-	strncpy(myMiner.ipAddress,"1.2.3.4",BUFF);
-	strncpy(myMiner.portNumber,"54321",BUFF);
         while (fgets(sendline, ECHOMAX, fp) != NULL) {
 
 		//clientMsgOut(sockfd,sendline,strlen(sendline));
@@ -106,8 +110,8 @@ main(int argc, char **argv)
 	char name[BUFF];
 	scanf("%s",name);
 	
-	if (argc != 3)
-		DieWithError( "usage: tcp-client <Server-IPaddress> <Server-Port>" );
+	if (argc != 5)
+		DieWithError( "usage: tcp-client <Server-IPaddress> <Server-Port> <Coins> <Name>" );
 	
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -116,7 +120,24 @@ main(int argc, char **argv)
 	servaddr.sin_port = htons(atoi(argv[2]));
 	inet_pton(AF_INET, argv[1], &servaddr.sin_addr);
 
+	strncpy(myMiner.userName,argv[5],sizeof(argv[5]));
+	myMiner.coins = atoi(argv[4]);
+	strncpy(myMiner.ipAddress,argv[1],sizeof(argv[1]));
+	myMiner.userId = -1;
+	strncpy(myMiner.portNumber,argv[2],sizeof(argv[2]));
+	
 	connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
+	myRequest.requestType = 1;//1 is register
+	myRequest.userId = -1;
+	myRequest.status = 0;
+	myRequest.minerInfo = myMiner;
+	//register client to server	
+	write(sockfd,&myRequest,sizeof(myRequest));
+	ssize_t n;
+ 	if ( (n = read(sockfd, &serverRequest, ECHOMAX)) == 0)
+                        DieWithError("str_cli: server terminated prematurely");
+	printf("Return code:%d \n userID %d",serverRequest.status,serverRequest.userId);
+	
 
 	str_cli(stdin, sockfd);		/* do it all */
 
