@@ -61,7 +61,7 @@ void searchByName(char * inputName, int sockfd) {
 	}
 }
 
-char * printList() {
+void printList() {
 
 	for(int index = 0; index < 10; index++) {
 
@@ -114,15 +114,27 @@ EchoString(int sockfd)
 
 		clientRequest.requestType = inRequest.requestType;
 		//strcpy(clientRequest.requestArgs, inRequest.requestArgs);
-		clientRequest.userId = inRequest.userId;
-		clientRequest.status = inRequest.status;
-		clientRequest.minerInfo = inRequest.minerInfo;
-		strcpy(clientRequest.requestArgs, "hello");
+		//clientRequest.userId = inRequest.userId;
+		//clientRequest.status = inRequest.status;
+		//clientRequest.minerInfo = inRequest.minerInfo;
+		//strcpy(clientRequest.requestArgs, "hello");
 		//clientRequest.myMiners = inRequest.myMiners;
 		//clientRequest.VectorClock = inRequest.VectorClock;	
 
 		if(inRequest.requestType == 1) { //client is trying to register
 			
+			strcpy(clientRequest.requestArgs, inRequest.requestArgs);
+			clientRequest.userId = inRequest.userId;
+			clientRequest.status = inRequest.status;
+			
+			strcpy(clientRequest.minerInfo.userName, inRequest.minerInfo.userName);
+			strcpy(clientRequest.minerInfo.ipAddress, inRequest.minerInfo.ipAddress);
+			strcpy(clientRequest.minerInfo.portNumber, inRequest.minerInfo.portNumber);
+			clientRequest.minerInfo.userID = inRequest.minerInfo.userID;
+			clientRequest.minerInfo.coins = inRequest.minerInfo.coins;
+			memcpy(&inRequest.myMiners, &clientRequest.myMiners, sizeof(inRequest.myMiners));
+			//clientRequest.VectorClock = inRequest.VectorClock;	
+
 			clientRequest.userId = registerMiner();
 
 			write(sockfd, &clientRequest, sizeof(clientRequest));	
@@ -137,13 +149,19 @@ EchoString(int sockfd)
 			}
 				
 		}
-		else if(inRequest.requestType == 3) { //client is trying to search miner
+		else if(inRequest.requestType == 3) { //client is trying to print miners
 
+			printList();
+			strcpy(clientRequest.requestArgs, list);
+
+			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
+				
+				DieWithError("didn't send anything to client\n");
+			}
 		}
 		else { //client sent invalid requestType
 
-			strcpy(sendLine, "Invalid request\n");
-			write(sockfd, &sendLine, sizeof(sendLine));
+			DieWithError("Invalid Request!");
 		}	
 	}
 }

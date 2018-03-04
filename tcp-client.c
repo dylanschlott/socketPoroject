@@ -111,7 +111,7 @@ main(int argc, char **argv)
 {
 	int sockfd;
 	char command[BUFF];
-	char inputName[BUFF];
+	char clientInput[BUFF];
 	struct sockaddr_in servaddr;
 	
 	if (argc != 5)
@@ -142,12 +142,12 @@ main(int argc, char **argv)
 	ssize_t n;
 	ssize_t n2;
 
- 	if ( (n = read(sockfd, &serverRequest, sizeof(serverRequest))) == 0)
-                        DieWithError("str_cli: server terminated prematurely");
+ 	if ( (n = read(sockfd, &serverRequest, sizeof(serverRequest))) == 0) {
 
-	printf("\n%ld\n", n);
+		DieWithError("str_cli: server terminated prematurely");
+	}
 
-	printf("Return code:%d \nuserID %d\nrequestArgs %s\n", serverRequest.status,serverRequest.userId, serverRequest.requestArgs);
+	//printf("Return code:%d \nuserID %d\nrequestArgs %s\n", serverRequest.status,serverRequest.userId, serverRequest.requestArgs);
 
 	//str_cli(stdin, sockfd);		/* do it all */
 
@@ -159,20 +159,41 @@ main(int argc, char **argv)
 
 		if(strcmp(command, "1\n") == 0) {
 
-			printf("\nEnter user name: ");
-			fgets(inputName, BUFF, stdin);
+			printf("Enter user name: ");
+			fgets(clientInput, BUFF, stdin);
+			strcpy(myMiner.userName, clientInput);
 
-			strcpy(myMiner.userName, inputName);
-			strcpy(myMiner.ipAddress, "1.11");
-			strcpy(myMiner.portNumber, "1");
+			printf("Enter IP address: ");
+			fgets(clientInput, BUFF, stdin);
+			strcpy(myMiner.ipAddress, clientInput);
+
+			printf("Enter port number: ");
+			fgets(clientInput, BUFF, stdin);
+			strcpy(myMiner.portNumber, clientInput);
+
+			printf("Enter coin amount: ");
+			fgets(clientInput, BUFF, stdin);
+			strcpy(myMiner.ipAddress, clientInput);
+			myMiner.coins = atoi(clientInput);
+
 			myMiner.userId = -1;
-			myMiner.coins = 777;
-
 			myRequest.requestType = 1;
-			myRequest.userId = 999;
+			myRequest.userId = -1;
 			myRequest.status = -1;
 			myRequest.minerInfo = myMiner;
-			write(sockfd, &myRequest, sizeof(myRequest));
+
+			//Write to server AND check if sent anything
+			if ((n2 = write(sockfd, &myRequest, sizeof(myRequest))) == 0) {
+			
+				printf("Didn't send any bytes to server");			
+			}
+
+			//Read from server AND check if received anything
+			if ((n = read(sockfd, &serverRequest, sizeof(serverRequest))) == 0) {
+				
+				DieWithError("server terminated prematurely!");
+			}
+
 		}
 		else if (strcmp(command, "2\n") == 0) {
 
@@ -191,13 +212,32 @@ main(int argc, char **argv)
 			}
 
 			//Read from server AND check if received anything
-			if ((n = read(sockfd, &serverRequest, ECHOMAX)) == 0) {
+			if ((n = read(sockfd, &serverRequest, sizeof(serverRequest))) == 0) {
 				
 				DieWithError("server terminated prematurely!");
 			}
 
 			sleep(1);
 			printf("request args was %s\n", serverRequest.requestArgs);
+		}
+		else if(strcmp(command, "3\n") == 0) {
+
+			printf("\nPrinting all miners: \n");
+
+			myRequest.requestType = 3;
+			
+			if((n = write(sockfd, &myRequest, sizeof(myRequest))) == 0) {
+
+				printf("Didn't send bytes to server");
+			}
+
+			if ((n = read(sockfd, &serverRequest, sizeof(serverRequest))) == 0) {
+				
+				DieWithError("server terminated prematurely!");
+			}
+
+			sleep(1);
+			printf("The current miners are: %s", serverRequest.requestArgs);
 		}
 		else if (strcmp(command, "break\n") == 0) {
 
