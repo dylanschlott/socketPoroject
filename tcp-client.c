@@ -15,6 +15,8 @@
 #define SUCCESS 1
 #define FAILURE 0
 
+//TODO query info
+//TODO
 struct Miner {
 	char userName [64];
 	char ipAddress [64];
@@ -27,6 +29,7 @@ struct request{
 	char requestArgs[BUFF];
 	int userId;
 	int status;
+	int numMiners;//number active miners
 	struct Miner minerInfo;
 	struct Miner myMiners[MAXCLIENTS];
 	int VectorClock[MAXCLIENTS];	
@@ -123,11 +126,10 @@ main(int argc, char **argv)
 	strncpy(myMiner.ipAddress,argv[1],sizeof(argv[1]));
 	myMiner.userId = -1;
 	strncpy(myMiner.portNumber,argv[2],sizeof(argv[2]));
-	
 	connect(sockfd, (struct sockaddr *) &servaddr, sizeof(servaddr));
 	myRequest.requestType = 1;//1 is register
-	myRequest.userId = -1;
-	myRequest.status = 0;
+	myRequest.userId = 999;
+	myRequest.status = -1;
 	myRequest.minerInfo = myMiner;
 	//register client to server	
 	write(sockfd,&myRequest,sizeof(myRequest));
