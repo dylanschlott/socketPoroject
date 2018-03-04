@@ -159,6 +159,23 @@ EchoString(int sockfd)
 				DieWithError("didn't send anything to client\n");
 			}
 		}
+		else if(inRequest.requestType == 4) {
+
+			clientRequest.numMiners = minerQty;
+			
+			for(int index = 0; index < 10; index++) {
+
+				if(minerDatabase[index].userName[0] != '\0') {
+
+					strcpy(clientRequest.myMiners[index].userName, minerDatabase[index].userName);
+				}
+			}		
+
+			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
+				
+				DieWithError("didn't send anything to client\n");
+			}
+		}
 		else { //client sent invalid requestType
 
 			DieWithError("Invalid Request!");
@@ -168,7 +185,7 @@ EchoString(int sockfd)
 
 int registerMiner() {
 
-	int assignedID = -500;
+	int assignedID = 0;
 	int index = 0;
 
 	while(minerDatabase[index].userName[0] != '\0') {
@@ -178,8 +195,7 @@ int registerMiner() {
 (strcmp(minerDatabase[index].portNumber, clientRequest.minerInfo.portNumber) ==0) && (minerDatabase[index].coins == clientRequest.minerInfo.coins)) {
 
 				assignedID = index;
-				//return assignedID;
-				return 420;
+				return assignedID;
 		} 
 
 		//No matching miners, but the database isn't full, so add miner
@@ -197,9 +213,8 @@ int registerMiner() {
 			//NOTE: is the client supposed to see success, or the server?
 			printf("\nSUCCESS\n");
 			clientRequest.status = 1;
-			//clientRequest.userId = index;
-			//return assignedID;
-			return 777;
+			clientRequest.userId = index;
+			return assignedID;
 		}
 
 		index++;
@@ -219,7 +234,8 @@ int registerMiner() {
 	strcpy(minerDatabase[index].portNumber, clientRequest.minerInfo.portNumber);
 	minerDatabase[index].userID = clientRequest.minerInfo.userID;
 	minerDatabase[index].coins = clientRequest.minerInfo.coins;
-	clientRequest.status = 100;
+	clientRequest.status = 1;
+	minerQty++;
 
 	return 123456789;
 }

@@ -239,6 +239,32 @@ main(int argc, char **argv)
 			sleep(1);
 			printf("The current miners are: %s", serverRequest.requestArgs);
 		}
+		else if (strcmp(command, "4\n") == 0) {
+
+			myRequest.requestType = 4;
+			
+			if((n = write(sockfd, &myRequest, sizeof(myRequest))) == 0) {
+
+				printf("Didn't send bytes to server");
+			}
+
+			if ((n = read(sockfd, &serverRequest, sizeof(serverRequest))) == 0) {
+				
+				DieWithError("server terminated prematurely!");
+			}
+
+			sleep(1);
+
+			printf("Number of miners is %d, and the minerInfo has been retrieved. The miner's names are: ", serverRequest.numMiners);
+			
+			for(int index = 0; index < 10; index++) {
+
+				if(serverRequest.myMiners[index].userName[0] != '\0') {
+
+					printf("%s, ", serverRequest.myMiners[index].userName);			
+				}
+			}
+		}
 		else if (strcmp(command, "break\n") == 0) {
 
 			printf("leaving loop\n");
