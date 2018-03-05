@@ -6,6 +6,7 @@
 #include	<string.h>
 #include	<unistd.h>
 #include	<string.h>
+#include	<sys/mman.h>
 
 #define	ECHOMAX	255		/* Longest string to echo */
 #define BACKLOG	128
@@ -41,8 +42,9 @@ struct request{
 	int VectorClock[MAXCLIENTS];	
 };
 
-struct Miner minerDatabase[MAXCLIENTS];
+struct Miner * minerDatabase;
 struct request clientRequest;
+void writeDatabase();
 
 //Client requests a miner by name. Request struct sent back with desired miner.
 void searchByName(char * inputName, int sockfd) {
@@ -122,7 +124,7 @@ EchoString(int sockfd)
 		//clientRequest.VectorClock = inRequest.VectorClock;	
 
 		if(inRequest.requestType == 1) { //client is trying to register
-			
+			printf("Recieved registerRequest from client %s \n",inRequest.minerInfo.userName);
 			strcpy(clientRequest.requestArgs, inRequest.requestArgs);
 			clientRequest.userId = inRequest.userId;
 			clientRequest.status = inRequest.status;
@@ -136,7 +138,6 @@ EchoString(int sockfd)
 			//clientRequest.VectorClock = inRequest.VectorClock;	
 
 			clientRequest.userId = registerMiner();
-
 			write(sockfd, &clientRequest, sizeof(clientRequest));	
 		}
 		else if(inRequest.requestType == 2) { //client wants list of miners
@@ -150,9 +151,14 @@ EchoString(int sockfd)
 		}
 		else if(inRequest.requestType == 3) { //client is trying to print miners
 
-			printList();
-			strcpy(clientRequest.requestArgs, list);
-
+			//printList();
+			//strcpy(clientRequest.requestArgs, list);
+			//clientRequest.myMiners = minerDatabase;
+			printf("Recieved a print miners command\n");
+			memcpy(&clientRequest.myMiners,&minerDatabase,sizeof(clientRequest));
+			for(int i = 0; i <9; i++){
+				printf("%s\n",minerDatabase[i].userName);
+			}
 			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
 				
 				DieWithError("didn't send anything to client\n");
@@ -235,7 +241,6 @@ int registerMiner() {
 	minerDatabase[index].coins = clientRequest.minerInfo.coins;
 	clientRequest.status = 1;
 	minerQty++;
-
 	return 123456789;
 }
 
@@ -304,7 +309,19 @@ void save(char * fName) {
 	fclose(fp);	
 
 }
-
+void
+updateDatabase()//reads the current database.txt file and updates the minerdatabase struct
+{
+	FILE * fp;
+	fp = fopen("database.txt","r");
+	if(fp == NULL)
+	{
+		printf("could not open file\n");
+	}
+	while(fread(&minerDatabase,sizeof(minerDatabase),1,fp));
+	
+	fclose(fp);
+}
 int
 main(int argc, char **argv)
 {
@@ -315,7 +332,7 @@ main(int argc, char **argv)
 	char echoBuffer[ECHOMAX];        /* Buffer for echo string */
 	unsigned short echoServPort;     /* Server port */
 	int recvMsgSize;                 /* Size of received message */
-
+	minerDatabase = mmap(NULL,sizeof(minerDatabase),PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1,0);
 	printf("Starting server...\n");
 
 	//registerMiner("first", "1.1", "1", "111");
