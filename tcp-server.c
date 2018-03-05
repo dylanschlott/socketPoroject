@@ -283,7 +283,7 @@ void deRegister(char * name) {
 
 
 		if(strcmp(name, minerDatabase[index].userName) == 0) {
-			printf("Found %s\n", name);
+			//printf("Found %s\n", name);
 
 			//no need to shift next miners back 1 index, just remove the last one
 			if(index == 9) {
@@ -299,6 +299,7 @@ void deRegister(char * name) {
 				//shift all miners back an index
 				for(int index2 = index + 1; index2 < 10; index2++) {
 
+					//printf("index2 %d\n", index2);
 					if(minerDatabase[index2].userName[0] != '\0') {
 
 						strcpy(minerDatabase[index].userName, minerDatabase[index2].userName);
@@ -306,10 +307,13 @@ void deRegister(char * name) {
 						strcpy(minerDatabase[index].portNumber, minerDatabase[index2].portNumber);
 						minerDatabase[index].userID = minerDatabase[index2].userID;
 						minerDatabase[index].coins = minerDatabase[index2].coins;
+
+						//printf("pushed %s where %s was\n", minerDatabase[index2].userName, minerDatabase[index].userName);
 					}
 					else {
-
+						//printf("set last miner to empty");
 						minerDatabase[index].userName[0] = '\0';
+						return;
 					}
 					
 				}
