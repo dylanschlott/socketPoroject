@@ -18,6 +18,8 @@ int registerMiner();
 char sendLine[BUFF];
 char list[100];
 void deRegister(char * name);
+void query(int sockfd);
+void save(char * fName);
 
 //If someone is trying to contact server, send them 
 //finish query: send request struct
@@ -136,20 +138,9 @@ EchoString(int sockfd)
 		}
 		else if(inRequest.requestType == 2) {	//client is attempting query
 
-			clientRequest.numMiners = *minerQty;
-			
-			for(int index = 0; index < 10; index++) {
+			printf("Client requested query\n");
 
-				if(minerDatabase[index].userName[0] != '\0') {
-
-					strcpy(clientRequest.myMiners[index].userName, minerDatabase[index].userName);
-				}
-			}		
-
-			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
-				
-				DieWithError("didn't send anything to client\n");
-			}
+			query(sockfd);
 		}
 		else if(inRequest.requestType == 3) { //client is trying to delete a miner
 
