@@ -140,7 +140,6 @@ EchoString(int sockfd)
 			write(sockfd, &clientRequest, sizeof(clientRequest));	
 		}
 		else if(inRequest.requestType == 2) { //client wants list of miners
-
 			strcpy(clientRequest.requestArgs, inRequest.requestArgs);
 
 			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
@@ -353,10 +352,33 @@ main(int argc, char **argv)
 
 	if (listen(sock, BACKLOG) < 0 )
 		DieWithError("server: listen() failed");
+	pid_t pid;
+	int ret;	
+	while(1)
+	{
+		do connfd = accept( sock, (struct sockaddr *) &echoClntAddr, &cliAddrLen );
+		while(connfd==-1);
+		if(connfd ==-1)
+			DieWithError("something happened");
+		if((pid=fork())==-1)
+			DieWithError("Could not create child process");
+		else if(pid==0)
+		{
+			EchoString(connfd);
+		}
+		//parent
+		do ret=close(connfd);while(ret==-1);
+		if(ret==-1)DieWithError("Server died");
+	}
+	//cliAddrLen = sizeof(echoClntAddr);
+	//connfd = accept( sock, (struct sockaddr *) &echoClntAddr, &cliAddrLen );
 
-	cliAddrLen = sizeof(echoClntAddr);
-	connfd = accept( sock, (struct sockaddr *) &echoClntAddr, &cliAddrLen );
 
-	EchoString(connfd);
-	close(connfd);
+	//EchoString(connfd);
+	
+	//printf("EchoString exited: \n");
+
+	//close(connfd);
+
+	printf("Server exited: \n");
 }
