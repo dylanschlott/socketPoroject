@@ -264,6 +264,8 @@ main(int argc, char **argv)
 				
 				DieWithError("server terminated prematurely!");
 			}
+
+			exit(1);
 		}
 		else if (strcmp(command, "4\n") == 0) {
 
