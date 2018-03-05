@@ -61,7 +61,7 @@ void searchByName(char * inputName, int sockfd) {
 	}
 }
 
-char * printList() {
+void printList() {
 
 	for(int index = 0; index < 10; index++) {
 
@@ -96,8 +96,6 @@ DieWithError(const char *errorMessage) /* External error handling function */
 	exit(1);
 }
 
-//NOTE YOU HAVE TO READ IN '2' CONDITIONAL
-
 void
 EchoString(int sockfd)
 {
@@ -116,41 +114,77 @@ EchoString(int sockfd)
 
 		clientRequest.requestType = inRequest.requestType;
 		//strcpy(clientRequest.requestArgs, inRequest.requestArgs);
-		clientRequest.userId = inRequest.userId;
-		clientRequest.status = inRequest.status;
-		clientRequest.minerInfo = inRequest.minerInfo;
-		strcpy(clientRequest.requestArgs, "hello");
+		//clientRequest.userId = inRequest.userId;
+		//clientRequest.status = inRequest.status;
+		//clientRequest.minerInfo = inRequest.minerInfo;
+		//strcpy(clientRequest.requestArgs, "hello");
 		//clientRequest.myMiners = inRequest.myMiners;
 		//clientRequest.VectorClock = inRequest.VectorClock;	
 
 		if(inRequest.requestType == 1) { //client is trying to register
 			
+			strcpy(clientRequest.requestArgs, inRequest.requestArgs);
+			clientRequest.userId = inRequest.userId;
+			clientRequest.status = inRequest.status;
+			
+			strcpy(clientRequest.minerInfo.userName, inRequest.minerInfo.userName);
+			strcpy(clientRequest.minerInfo.ipAddress, inRequest.minerInfo.ipAddress);
+			strcpy(clientRequest.minerInfo.portNumber, inRequest.minerInfo.portNumber);
+			clientRequest.minerInfo.userID = inRequest.minerInfo.userID;
+			clientRequest.minerInfo.coins = inRequest.minerInfo.coins;
+			memcpy(&inRequest.myMiners, &clientRequest.myMiners, sizeof(inRequest.myMiners));
+			//clientRequest.VectorClock = inRequest.VectorClock;	
+
 			clientRequest.userId = registerMiner();
 
 			write(sockfd, &clientRequest, sizeof(clientRequest));	
 		}
 		else if(inRequest.requestType == 2) { //client wants list of miners
+			strcpy(clientRequest.requestArgs, inRequest.requestArgs);
 
-			//printList();
-			strcpy(clientRequest.requestArgs, "test RequestArgs");
-
-			write(sockfd, &clientRequest, sizeof(clientRequest));	
+			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
+				
+				DieWithError("didn't send anything to client\n");
+			}
+				
 		}
-		else if(inRequest.requestType == 3) { //client is trying to search miner
+		else if(inRequest.requestType == 3) { //client is trying to print miners
 
+			printList();
+			strcpy(clientRequest.requestArgs, list);
+
+			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
+				
+				DieWithError("didn't send anything to client\n");
+			}
+		}
+		else if(inRequest.requestType == 4) {
+
+			clientRequest.numMiners = minerQty;
+			
+			for(int index = 0; index < 10; index++) {
+
+				if(minerDatabase[index].userName[0] != '\0') {
+
+					strcpy(clientRequest.myMiners[index].userName, minerDatabase[index].userName);
+				}
+			}		
+
+			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
+				
+				DieWithError("didn't send anything to client\n");
+			}
 		}
 		else { //client sent invalid requestType
 
-			strcpy(sendLine, "Invalid request\n");
-			write(sockfd, &sendLine, sizeof(sendLine));
+			DieWithError("Invalid Request!");
 		}	
 	}
 }
 
 int registerMiner() {
 
-	printf("Trying to register");
-	int assignedID = -500;
+	int assignedID = 0;
 	int index = 0;
 
 	while(minerDatabase[index].userName[0] != '\0') {
@@ -160,8 +194,7 @@ int registerMiner() {
 (strcmp(minerDatabase[index].portNumber, clientRequest.minerInfo.portNumber) ==0) && (minerDatabase[index].coins == clientRequest.minerInfo.coins)) {
 
 				assignedID = index;
-				//return assignedID;
-				return 420;
+				return assignedID;
 		} 
 
 		//No matching miners, but the database isn't full, so add miner
@@ -179,9 +212,8 @@ int registerMiner() {
 			//NOTE: is the client supposed to see success, or the server?
 			printf("\nSUCCESS\n");
 			clientRequest.status = 1;
-			//clientRequest.userId = index;
-			//return assignedID;
-			return 777;
+			clientRequest.userId = index;
+			return assignedID;
 		}
 
 		index++;
@@ -202,8 +234,9 @@ int registerMiner() {
 	minerDatabase[index].userID = clientRequest.minerInfo.userID;
 	minerDatabase[index].coins = clientRequest.minerInfo.coins;
 	clientRequest.status = 1;
+	minerQty++;
 
-	return 1;
+	return 123456789;
 }
 
 //NOTE: it says to return the minerQty. Should we add int minerQty to request struct to send back?
@@ -339,6 +372,7 @@ main(int argc, char **argv)
 	}
 	//cliAddrLen = sizeof(echoClntAddr);
 	//connfd = accept( sock, (struct sockaddr *) &echoClntAddr, &cliAddrLen );
+
 
 	//EchoString(connfd);
 	
