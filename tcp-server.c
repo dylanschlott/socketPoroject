@@ -116,13 +116,6 @@ EchoString(int sockfd)
 		}
 
 		clientRequest.requestType = inRequest.requestType;
-		//strcpy(clientRequest.requestArgs, inRequest.requestArgs);
-		//clientRequest.userId = inRequest.userId;
-		//clientRequest.status = inRequest.status;
-		//clientRequest.minerInfo = inRequest.minerInfo;
-		//strcpy(clientRequest.requestArgs, "hello");
-		//clientRequest.myMiners = inRequest.myMiners;
-		//clientRequest.VectorClock = inRequest.VectorClock;	
 
 		if(inRequest.requestType == 1) { //client is trying to register
 			printf("Recieved register request from client %s \n",inRequest.minerInfo.userName);
@@ -141,7 +134,7 @@ EchoString(int sockfd)
 			clientRequest.userId = registerMiner();
 			write(sockfd, &clientRequest, sizeof(clientRequest));	
 		}
-		else if(inRequest.requestType == 2) {
+		else if(inRequest.requestType == 2) {	//client is attempting query
 
 			clientRequest.numMiners = *minerQty;
 			
@@ -158,7 +151,7 @@ EchoString(int sockfd)
 				DieWithError("didn't send anything to client\n");
 			}
 		}
-		else if(inRequest.requestType == 3) { //client is trying to print miners
+		else if(inRequest.requestType == 3) { //client is trying to delete a miner
 
 			printf("Recieved a delete command\n");
 			fflush(stdin);
@@ -168,27 +161,11 @@ EchoString(int sockfd)
 			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
 
 				DieWithError("didn't send anything to client");
-			}
-
-			/*memcpy(&clientRequest.myMiners,&minerDatabase,sizeof(clientRequest));
-			for(int i = 0; i < 9; i++){
-				printf("%s\n",minerDatabase[i].userName);
-			}
-			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
-				
-				DieWithError("didn't send anything to client\n");
-			}*/
-
-			
+			}			
 		}
-		else if(inRequest.requestType == 4) { //Transaction
+		else if(inRequest.requestType == 4) { //Save
 
-			/*strcpy(clientRequest.requestArgs, inRequest.requestArgs);
-
-			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
-				
-				DieWithError("didn't send anything to client\n");
-			}*/
+			save("testFile");
 				
 		}
 		else { //client sent invalid requestType
@@ -225,7 +202,6 @@ int registerMiner() {
 			minerQty++;
 			assignedID = index;
 
-			//NOTE: is the client supposed to see success, or the server?
 			printf("\nSUCCESS\n");
 			clientRequest.status = 1;
 			clientRequest.userId = index;
@@ -239,7 +215,7 @@ int registerMiner() {
 
 			printf("\nFAILURE\n");
 			//return assignedID;
-			return 888;
+			return 0;
 		}
 	}
 
@@ -251,6 +227,7 @@ int registerMiner() {
 	minerDatabase[index].coins = clientRequest.minerInfo.coins;
 	clientRequest.status = 1;
 	minerQty++;
+	printf("\nSUCCESS\n");
 	return 1;
 }
 
@@ -259,8 +236,10 @@ void query(int sockfd) {
 
 	clientRequest.numMiners = *minerQty;
 
+	//Search through all miners, valid or not
 	for(int index = 0; index < 10; index++) {
 
+		//if valid miner, throw them into a message to send back to client
 		if(minerDatabase[index].userName[0] != '\0') {
 
 			strcpy(clientRequest.myMiners[index].userName, minerDatabase[index].userName);
@@ -283,7 +262,6 @@ void deRegister(char * name) {
 
 
 		if(strcmp(name, minerDatabase[index].userName) == 0) {
-			//printf("Found %s\n", name);
 
 			//no need to shift next miners back 1 index, just remove the last one
 			if(index == 9) {
@@ -299,7 +277,6 @@ void deRegister(char * name) {
 				//shift all miners back an index
 				for(int index2 = index + 1; index2 < 10; index2++) {
 
-					//printf("index2 %d\n", index2);
 					if(minerDatabase[index2].userName[0] != '\0') {
 
 						strcpy(minerDatabase[index].userName, minerDatabase[index2].userName);
@@ -307,11 +284,9 @@ void deRegister(char * name) {
 						strcpy(minerDatabase[index].portNumber, minerDatabase[index2].portNumber);
 						minerDatabase[index].userID = minerDatabase[index2].userID;
 						minerDatabase[index].coins = minerDatabase[index2].coins;
-
-						//printf("pushed %s where %s was\n", minerDatabase[index2].userName, minerDatabase[index].userName);
 					}
 					else {
-						//printf("set last miner to empty");
+						//last valid miner was deleted, so instead of shifting, just remove its userName
 						minerDatabase[index].userName[0] = '\0';
 						return;
 					}
@@ -335,11 +310,35 @@ void save(char * fName) {
 
 	fp = fopen(fileName, "w");
 
+	//put number of miners at top of file
 	sprintf(buffer, "%d", *minerQty);
 	fputs(buffer, fp);
 	fputs("\n", fp);
 
-	//fputs(printList(), fp);
+	//search through max amount of miners
+	for(int index = 0; index < 10; index++) {
+
+		//If valid miner, add all attributes to line
+		if(minerDatabase[index].userName[0] != '\0') {
+
+			fputs(minerDatabase[index].userName, fp);
+			fputs(",", fp);
+			fputs(minerDatabase[index].ipAddress, fp);
+			fputs(",", fp);
+			fputs(minerDatabase[index].portNumber, fp);
+			fputs(",", fp);
+			sprintf(buffer, "%d", minerDatabase[index].userID);
+			fputs(buffer, fp);
+			fputs(",", fp);
+			sprintf(buffer, "%d", minerDatabase[index].coins);
+			fputs(buffer, fp);
+			fputs("\n", fp);
+		}
+		else {	//Reached an invalid miner, break out of loop
+
+			break;
+		}
+	}
 
 	fclose(fp);	
 
@@ -371,16 +370,6 @@ main(int argc, char **argv)
 	minerQty = mmap(NULL, sizeof(minerQty),PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1,0);
 
 	printf("Starting server...\n");
-
-	//registerMiner("first", "1.1", "1", "111");
-	//registerMiner("second", "2.2", "2", "222");
-	//registerMiner("last", "3.3", "3", "333");
-	
-	//printList();
-
-	char * test = "testFile";
-
-	save(test);
 
 	if (argc != 2)         /* Test for correct number of parameters */
 	{
@@ -424,15 +413,6 @@ main(int argc, char **argv)
 		do ret=close(connfd);while(ret==-1);
 		if(ret==-1)DieWithError("Server died");
 	}
-	//cliAddrLen = sizeof(echoClntAddr);
-	//connfd = accept( sock, (struct sockaddr *) &echoClntAddr, &cliAddrLen );
-
-
-	//EchoString(connfd);
-	
-	//printf("EchoString exited: \n");
-
-	//close(connfd);
 
 	printf("Server exited: \n");
 }
