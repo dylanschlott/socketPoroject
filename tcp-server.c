@@ -6,16 +6,18 @@
 #include	<string.h>
 #include	<unistd.h>
 #include	<string.h>
+#include	<sys/mman.h>
 
 #define	ECHOMAX	255		/* Longest string to echo */
 #define BACKLOG	128
 #define BUFF 64
 #define MAXCLIENTS 10
 
-int minerQty = 0;
+int * minerQty;
 int registerMiner();
 char sendLine[BUFF];
 char list[100];
+void deRegister(char * name);
 
 //If someone is trying to contact server, send them 
 //finish query: send request struct
@@ -41,8 +43,9 @@ struct request{
 	int VectorClock[MAXCLIENTS];	
 };
 
-struct Miner minerDatabase[MAXCLIENTS];
+struct Miner * minerDatabase;
 struct request clientRequest;
+void writeDatabase();
 
 //Client requests a miner by name. Request struct sent back with desired miner.
 void searchByName(char * inputName, int sockfd) {
@@ -122,7 +125,7 @@ EchoString(int sockfd)
 		//clientRequest.VectorClock = inRequest.VectorClock;	
 
 		if(inRequest.requestType == 1) { //client is trying to register
-			
+			printf("Recieved register request from client %s \n",inRequest.minerInfo.userName);
 			strcpy(clientRequest.requestArgs, inRequest.requestArgs);
 			clientRequest.userId = inRequest.userId;
 			clientRequest.status = inRequest.status;
@@ -136,31 +139,11 @@ EchoString(int sockfd)
 			//clientRequest.VectorClock = inRequest.VectorClock;	
 
 			clientRequest.userId = registerMiner();
-
 			write(sockfd, &clientRequest, sizeof(clientRequest));	
 		}
-		else if(inRequest.requestType == 2) { //client wants list of miners
-			strcpy(clientRequest.requestArgs, inRequest.requestArgs);
+		else if(inRequest.requestType == 2) {
 
-			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
-				
-				DieWithError("didn't send anything to client\n");
-			}
-				
-		}
-		else if(inRequest.requestType == 3) { //client is trying to print miners
-
-			printList();
-			strcpy(clientRequest.requestArgs, list);
-
-			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
-				
-				DieWithError("didn't send anything to client\n");
-			}
-		}
-		else if(inRequest.requestType == 4) {
-
-			clientRequest.numMiners = minerQty;
+			clientRequest.numMiners = *minerQty;
 			
 			for(int index = 0; index < 10; index++) {
 
@@ -174,6 +157,39 @@ EchoString(int sockfd)
 				
 				DieWithError("didn't send anything to client\n");
 			}
+		}
+		else if(inRequest.requestType == 3) { //client is trying to print miners
+
+			printf("Recieved a delete command\n");
+			fflush(stdin);
+
+			deRegister(inRequest.requestArgs);
+
+			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
+
+				DieWithError("didn't send anything to client");
+			}
+
+			/*memcpy(&clientRequest.myMiners,&minerDatabase,sizeof(clientRequest));
+			for(int i = 0; i < 9; i++){
+				printf("%s\n",minerDatabase[i].userName);
+			}
+			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
+				
+				DieWithError("didn't send anything to client\n");
+			}*/
+
+			
+		}
+		else if(inRequest.requestType == 4) { //Transaction
+
+			/*strcpy(clientRequest.requestArgs, inRequest.requestArgs);
+
+			if ((n = write(sockfd, &clientRequest, sizeof(clientRequest))) == 0) {
+				
+				DieWithError("didn't send anything to client\n");
+			}*/
+				
 		}
 		else { //client sent invalid requestType
 
@@ -235,14 +251,26 @@ int registerMiner() {
 	minerDatabase[index].coins = clientRequest.minerInfo.coins;
 	clientRequest.status = 1;
 	minerQty++;
-
-	return 123456789;
+	return 1;
 }
 
 //NOTE: it says to return the minerQty. Should we add int minerQty to request struct to send back?
 void query(int sockfd) {
 
-	clientRequest.numMiners = minerQty;
+	clientRequest.numMiners = *minerQty;
+
+	for(int index = 0; index < 10; index++) {
+
+		if(minerDatabase[index].userName[0] != '\0') {
+
+			strcpy(clientRequest.myMiners[index].userName, minerDatabase[index].userName);
+			strcpy(clientRequest.myMiners[index].ipAddress, minerDatabase[index].ipAddress);
+			strcpy(clientRequest.myMiners[index].portNumber, minerDatabase[index].portNumber);
+			clientRequest.myMiners[index].userID = minerDatabase[index].userID;
+			clientRequest.myMiners[index].coins = minerDatabase[index].coins;
+		}
+	}
+
 	write(sockfd, &clientRequest, sizeof(clientRequest));	
 }
 
@@ -253,8 +281,9 @@ void deRegister(char * name) {
 	//search database for given name
 	for(int index = 0; index < 10; index++) {
 
-		//found match
+
 		if(strcmp(name, minerDatabase[index].userName) == 0) {
+			//printf("Found %s\n", name);
 
 			//no need to shift next miners back 1 index, just remove the last one
 			if(index == 9) {
@@ -270,11 +299,22 @@ void deRegister(char * name) {
 				//shift all miners back an index
 				for(int index2 = index + 1; index2 < 10; index2++) {
 
-					strcpy(minerDatabase[index].userName, minerDatabase[index2].userName);
-					strcpy(minerDatabase[index].ipAddress, minerDatabase[index2].ipAddress);
-					strcpy(minerDatabase[index].portNumber, minerDatabase[index2].portNumber);
-					minerDatabase[index].userID = minerDatabase[index2].userID;
-					minerDatabase[index].coins = minerDatabase[index2].coins;
+					//printf("index2 %d\n", index2);
+					if(minerDatabase[index2].userName[0] != '\0') {
+
+						strcpy(minerDatabase[index].userName, minerDatabase[index2].userName);
+						strcpy(minerDatabase[index].ipAddress, minerDatabase[index2].ipAddress);
+						strcpy(minerDatabase[index].portNumber, minerDatabase[index2].portNumber);
+						minerDatabase[index].userID = minerDatabase[index2].userID;
+						minerDatabase[index].coins = minerDatabase[index2].coins;
+
+						//printf("pushed %s where %s was\n", minerDatabase[index2].userName, minerDatabase[index].userName);
+					}
+					else {
+						//printf("set last miner to empty");
+						minerDatabase[index].userName[0] = '\0';
+						return;
+					}
 					
 				}
 			}
@@ -295,7 +335,7 @@ void save(char * fName) {
 
 	fp = fopen(fileName, "w");
 
-	sprintf(buffer, "%d", minerQty);
+	sprintf(buffer, "%d", *minerQty);
 	fputs(buffer, fp);
 	fputs("\n", fp);
 
@@ -304,7 +344,19 @@ void save(char * fName) {
 	fclose(fp);	
 
 }
-
+void
+updateDatabase()//reads the current database.txt file and updates the minerdatabase struct
+{
+	FILE * fp;
+	fp = fopen("database.txt","r");
+	if(fp == NULL)
+	{
+		printf("could not open file\n");
+	}
+	while(fread(&minerDatabase,sizeof(minerDatabase),1,fp));
+	
+	fclose(fp);
+}
 int
 main(int argc, char **argv)
 {
@@ -315,6 +367,8 @@ main(int argc, char **argv)
 	char echoBuffer[ECHOMAX];        /* Buffer for echo string */
 	unsigned short echoServPort;     /* Server port */
 	int recvMsgSize;                 /* Size of received message */
+	minerDatabase = mmap(NULL,sizeof(minerDatabase),PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1,0);
+	minerQty = mmap(NULL, sizeof(minerQty),PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1,0);
 
 	printf("Starting server...\n");
 

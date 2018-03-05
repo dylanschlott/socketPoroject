@@ -39,6 +39,7 @@ struct Miner myMiner;//This client's miner
 struct request myRequest;//this is a general purpose struct for handling client->server requests
 struct request serverRequest;//this is a gernal purpose struct for handling server->client requests
 char response[BUFF];
+char compareChar;
 
 void
 DieWithError(const char *errorMessage) /* External error handling function */
@@ -161,18 +162,22 @@ main(int argc, char **argv)
 
 			printf("Enter user name: ");
 			fgets(clientInput, BUFF, stdin);
+			strtok(clientInput, "\n");
 			strcpy(myMiner.userName, clientInput);
 
 			printf("Enter IP address: ");
 			fgets(clientInput, BUFF, stdin);
+			strtok(clientInput, "\n");
 			strcpy(myMiner.ipAddress, clientInput);
 
 			printf("Enter port number: ");
 			fgets(clientInput, BUFF, stdin);
+			strtok(clientInput, "\n");
 			strcpy(myMiner.portNumber, clientInput);
 
 			printf("Enter coin amount: ");
 			fgets(clientInput, BUFF, stdin);
+			strtok(clientInput, "\n");
 			strcpy(myMiner.ipAddress, clientInput);
 			myMiner.coins = atoi(clientInput);
 
@@ -198,6 +203,71 @@ main(int argc, char **argv)
 		else if (strcmp(command, "2\n") == 0) {
 
 			myRequest.requestType = 2;
+			
+			if((n = write(sockfd, &myRequest, sizeof(myRequest))) == 0) {
+
+				printf("Didn't send bytes to server");
+			}
+
+			if ((n = read(sockfd, &serverRequest, sizeof(serverRequest))) == 0) {
+				
+				DieWithError("server terminated prematurely!");
+			}
+
+			sleep(1);
+
+			printf("Number of miners is %d, and the minerInfo has been retrieved. The miner's names are: ", serverRequest.numMiners);
+			
+			for(int index = 0; index < 10; index++) {
+
+				if(serverRequest.myMiners[index].userName[0] != '\0') {
+
+					printf("*%s*, ", serverRequest.myMiners[index].userName);			
+				}
+			}
+		}
+		else if(strcmp(command, "3\n") == 0) {
+
+			/*printf("\nPrinting all miners: \n");
+
+			myRequest.requestType = 3;
+			
+			if((n = write(sockfd, &myRequest, sizeof(myRequest))) == 0) {
+
+				printf("Didn't send bytes to server");
+			}
+
+			if ((n = read(sockfd, &serverRequest, sizeof(serverRequest))) == 0) {
+				
+				DieWithError("server terminated prematurely!");
+			}
+
+			sleep(1);
+			printf("The current miners are: %s", serverRequest.requestArgs);*/
+
+			printf("Requesting to delete miner\n");
+			myRequest.requestType = 3;
+
+			printf("Enter name of miner to be deleted: ");
+			fgets(clientInput, BUFF, stdin);
+			strtok(clientInput, "\n");
+			printf("Deleting *%s*", clientInput);
+
+			strcpy(myRequest.requestArgs, clientInput);
+
+			if((n = write(sockfd, &myRequest, sizeof(myRequest))) == 0) {
+
+				printf("Didn't send bytes to server");
+			}
+
+			if ((n = read(sockfd, &serverRequest, sizeof(serverRequest))) == 0) {
+				
+				DieWithError("server terminated prematurely!");
+			}
+		}
+		else if (strcmp(command, "4\n") == 0) {
+
+			/*myRequest.requestType = 2;
 			char argument[BUFF];
 			fflush(stdin);
 
@@ -218,52 +288,9 @@ main(int argc, char **argv)
 			}
 
 			sleep(1);
-			printf("request args was %s\n", serverRequest.requestArgs);
-		}
-		else if(strcmp(command, "3\n") == 0) {
+			printf("request args was %s\n", serverRequest.requestArgs);*/
 
-			printf("\nPrinting all miners: \n");
 
-			myRequest.requestType = 3;
-			
-			if((n = write(sockfd, &myRequest, sizeof(myRequest))) == 0) {
-
-				printf("Didn't send bytes to server");
-			}
-
-			if ((n = read(sockfd, &serverRequest, sizeof(serverRequest))) == 0) {
-				
-				DieWithError("server terminated prematurely!");
-			}
-
-			sleep(1);
-			printf("The current miners are: %s", serverRequest.requestArgs);
-		}
-		else if (strcmp(command, "4\n") == 0) {
-
-			myRequest.requestType = 4;
-			
-			if((n = write(sockfd, &myRequest, sizeof(myRequest))) == 0) {
-
-				printf("Didn't send bytes to server");
-			}
-
-			if ((n = read(sockfd, &serverRequest, sizeof(serverRequest))) == 0) {
-				
-				DieWithError("server terminated prematurely!");
-			}
-
-			sleep(1);
-
-			printf("Number of miners is %d, and the minerInfo has been retrieved. The miner's names are: ", serverRequest.numMiners);
-			
-			for(int index = 0; index < 10; index++) {
-
-				if(serverRequest.myMiners[index].userName[0] != '\0') {
-
-					printf("%s, ", serverRequest.myMiners[index].userName);			
-				}
-			}
 		}
 		else if (strcmp(command, "break\n") == 0) {
 
