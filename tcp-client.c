@@ -95,9 +95,11 @@ int
 proof_of_work(long bigNumber)
 {
 	int isPrime = TRUE;
-	for(int n = 2; n < bigNumber-1; n++)
+	long random;
+	for(int n = 2; n < 50; n++)
 	{
-		if(bigNumber%n==0)
+	random = rand()%bigNumber;
+		if(bigNumber%random==0)
 		{
 			isPrime = FALSE;
 		}
@@ -105,7 +107,16 @@ proof_of_work(long bigNumber)
 	return isPrime;
 }
 
-
+int
+validation(int reqcoins)
+{
+	int retCode = 1;
+	if(myMiner.coins < reqcoins){
+		printf("%s does not have enough coins",myMiner.userName);
+		retCode = 0;
+	}
+	return retCode;
+}
 
 int
 main(int argc, char **argv)
